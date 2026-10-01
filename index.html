@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Listings by Shipping Group</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#E8ECF1; --panel:#FFFFFF; --ink:#16202C; --muted:#5B6878;
+  --line:#D3DAE3; --tape:#F2A900; --tape-ink:#2A1F00; --blue:#1F5FAD;
+  --row-alt:#F6F8FA; --good:#1E7A4C; --warn:#A35A00; --bad:#9B2C2C;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161D; --panel:#18212B; --ink:#E6ECF2; --muted:#93A1B2;
+    --line:#2B3744; --tape:#F2A900; --tape-ink:#2A1F00; --blue:#7FB2F0;
+    --row-alt:#1C2631; --good:#5CC48E; --warn:#F0A64A; --bad:#F08080;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161D; --panel:#18212B; --ink:#E6ECF2; --muted:#93A1B2;
+  --line:#2B3744; --tape:#F2A900; --tape-ink:#2A1F00; --blue:#7FB2F0;
+  --row-alt:#1C2631; --good:#5CC48E; --warn:#F0A64A; --bad:#F08080;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums}
+.wrap{max-width:1400px;margin:0 auto;padding:20px 18px 48px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+h1{margin:0;font-size:clamp(1.5rem,3vw,2.1rem);font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.sub{color:var(--muted);margin:4px 0 0}
+.filebtn{display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:var(--bg);
+  border:0;border-radius:8px;padding:10px 16px;font:600 14px inherit;font-family:inherit;cursor:pointer}
+.filebtn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--tape);outline-offset:2px}
+
+/* drop zone */
+.drop{background:var(--panel);border:2px dashed var(--line);border-radius:14px;
+  padding:56px 20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--tape);background:color-mix(in srgb,var(--tape) 8%,var(--panel))}
+.drop h2{margin:0 0 6px;font-size:1.3rem}
+.drop p{margin:0;color:var(--muted)}
+.drop .tape{display:inline-block;background:var(--tape);color:var(--tape-ink);font-weight:700;
+  padding:6px 14px;transform:rotate(-2deg);margin-bottom:16px;border-radius:2px}
+
+/* tabs as shipping labels */
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 0;scrollbar-width:thin}
+.tab{flex:0 0 auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-bottom:0;
+  border-radius:10px 10px 0 0;padding:10px 14px 12px;cursor:pointer;text-align:left;font-family:inherit;
+  min-width:150px;position:relative}
+.tab .n{display:block;font-size:1.25rem;font-weight:800;line-height:1.1}
+.tab .t{display:block;font-size:.82rem;color:var(--muted);white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.tab .of{font-size:.75rem;color:var(--muted);font-weight:500}
+.tab[aria-selected="true"]{background:var(--tape);border-color:var(--tape);color:var(--tape-ink)}
+.tab[aria-selected="true"] .t,.tab[aria-selected="true"] .of{color:var(--tape-ink)}
+.tab .z{opacity:.45}
+
+.board{background:var(--panel);border:1px solid var(--line);border-radius:0 12px 12px 12px;overflow:hidden}
+.controls{display:flex;flex-wrap:wrap;gap:14px 18px;align-items:flex-end;padding:16px;border-bottom:1px solid var(--line)}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:.8rem;color:var(--muted);font-weight:600}
+input[type=number],input[type=search],select{font:inherit;color:var(--ink);background:var(--bg);
+  border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+.price-box{display:flex;align-items:center;gap:6px}
+.price-box input{width:110px;font-size:1.1rem;font-weight:700}
+.price-box .cur{font-weight:700;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:600 13px inherit;font-family:inherit;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  border-radius:999px;padding:6px 11px;cursor:pointer}
+.chip.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.search{flex:1 1 220px}
+.search input{width:100%}
+.ghost{font:600 13px inherit;font-family:inherit;background:none;border:0;color:var(--blue);cursor:pointer;padding:8px 4px}
+.check{display:flex;align-items:center;gap:6px;font-size:.88rem;color:var(--muted);padding-bottom:8px}
+
+.summary{display:flex;flex-wrap:wrap;gap:6px 26px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:.92rem}
+.summary b{font-size:1.05rem}
+.summary .lead{font-weight:700}
+
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{position:sticky;top:0;background:var(--panel);text-align:left;font-weight:700;color:var(--muted);
+  padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+th.num,td.num{text-align:right}
+th .arr{color:var(--ink)}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:nth-child(even){background:var(--row-alt)}
+td.title{min-width:280px;max-width:520px}
+td.sku{font-weight:600;word-break:break-all;min-width:140px}
+td.price{font-weight:800;font-size:.95rem}
+a{color:var(--blue)}
+.st{font-weight:600;font-size:.8rem}
+.st.Active{color:var(--good)} .st.Inactive{color:var(--muted)} .st.Incomplete{color:var(--warn)}
+.ch{font-size:.78rem;color:var(--muted)}
+.qty0{color:var(--bad);font-weight:700}
+.empty{padding:40px 16px;text-align:center;color:var(--muted)}
+
+.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 16px}
+.pager button{font:600 13px inherit;font-family:inherit;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  border-radius:8px;padding:7px 12px;cursor:pointer}
+.pager button:disabled{opacity:.4;cursor:default}
+.fbtn{margin-left:6px;font:700 12px inherit;font-family:inherit;border:1px solid var(--line);background:var(--bg);
+  color:var(--ink);border-radius:6px;padding:2px 7px;cursor:pointer;vertical-align:middle}
+.fbtn.on{background:var(--tape);border-color:var(--tape);color:var(--tape-ink)}
+.fpop{position:absolute;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);padding:10px 12px;min-width:210px;font-size:.9rem}
+.fpop label{display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer}
+.fpop .cnt{margin-left:auto;color:var(--muted);font-size:.8rem;padding-left:12px}
+.fall{border-bottom:1px solid var(--line);margin-bottom:4px;padding-bottom:7px!important}
+.fact{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
+th.tk,td.tk{text-align:center;width:44px;cursor:default}
+.gchk{width:20px;height:20px;accent-color:#1E9E55;cursor:pointer;vertical-align:middle}
+tbody tr.done{background:color-mix(in srgb,#1E9E55 12%,var(--panel))!important}
+.hidden{display:none!important}
+@media (max-width:640px){ .tab{min-width:120px} td.title{min-width:220px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Listings by shipping group</h1>
+      <p class="sub" id="fileinfo">Upload your Amazon All Listings Report (.txt) to start.</p>
+    </div>
+    <button class="filebtn hidden" id="newfile" type="button">Load another file</button>
+  </header>
+
+  <input type="file" id="file" accept=".txt,.tsv,.csv,text/plain" class="hidden">
+
+  <div class="drop" id="drop" tabindex="0" role="button" aria-label="Upload listings report">
+    <span class="tape">Drop file here</span>
+    <h2>Drag your All_Listings_Report .txt here</h2>
+    <p>or click to choose it. The file stays in your browser and is never uploaded anywhere.</p>
+  </div>
+
+  <section id="app" class="hidden">
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="board">
+      <div class="controls">
+        <div class="field">
+          <label for="maxp">Price up to (£)</label>
+          <div class="price-box"><span class="cur">≤ £</span><input type="number" id="maxp" min="0" step="0.01" placeholder="any"></div>
+        </div>
+        <div class="field">
+          <label>Quick pick</label>
+          <div class="chips" id="chips"></div>
+        </div>
+        <div class="field">
+          <label for="minp">Price from (£)</label>
+          <div class="price-box"><span class="cur">≥ £</span><input type="number" id="minp" min="0" step="0.01" placeholder="0" style="width:90px;font-size:1rem"></div>
+        </div>
+        <div class="field search">
+          <label for="q">Search SKU, ASIN or title</label>
+          <input type="search" id="q" placeholder="e.g. ceiling rose, B0F1N4G1SZ">
+        </div>
+        <label class="check"><input type="checkbox" id="noprice"> Show listings with no price</label>
+        <button class="ghost" id="reset" type="button">Clear filters</button>
+        <button class="filebtn" id="export" type="button" style="padding:8px 14px;font-size:13px">Download this tab (CSV)</button>
+      </div>
+
+      <div class="summary" id="summary"></div>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th data-k="asin"><span class="lbl">ASIN</span><span class="arr"></span></th>
+            <th data-k="sku"><span class="lbl">SKU</span><span class="arr"></span></th>
+            <th data-k="name"><span class="lbl">Title</span><span class="arr"></span></th>
+            <th data-k="price" class="num"><span class="lbl">Price</span><span class="arr"></span></th>
+            <th data-k="qty" class="num"><span class="lbl">Qty</span><span class="arr"></span></th>
+            <th data-k="status"><span class="lbl">Status</span><span class="arr"></span><button type="button" class="fbtn" data-f="status" aria-label="Filter status">▾</button></th>
+            <th data-k="channel"><span class="lbl">Channel</span><span class="arr"></span><button type="button" class="fbtn" data-f="channel" aria-label="Filter channel">▾</button></th>
+            <th class="tk"><input type="checkbox" class="gchk" id="tickall" title="Tick all on this page" aria-label="Tick all on this page"></th>
+            <th data-k="group" id="groupcol"><span class="lbl">Shipping group</span><span class="arr"></span></th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="empty hidden" id="empty">No listings match these filters.</div>
+      </div>
+
+      <div class="pager">
+        <span id="pageinfo"></span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="perpage"><option>50</option><option selected>100</option><option>250</option><option>500</option></select>
+          <button id="prev" type="button">Previous</button>
+          <button id="next" type="button">Next</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="fpop hidden" id="fpop" role="dialog" aria-label="Column filter">
+  <label class="fall"><input type="checkbox" id="fall"> <b>Select all</b></label>
+  <div id="flist"></div>
+  <div class="fact"><button type="button" class="ghost" id="fclear">Clear</button><button type="button" class="filebtn" id="fok" style="padding:7px 16px;font-size:13px">OK</button></div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  let data = [], groups = [], active = "__ALL__", page = 0, sortK = "price", sortDir = 1;
+  const QUICK = [5,10,15,20,30,50,100];
+
+  const store = {
+    get(k){ try{ return localStorage.getItem(k) }catch(e){ return null } },
+    set(k,v){ try{ localStorage.setItem(k,v) }catch(e){} }
+  };
+
+  // ---------- file loading ----------
+  const drop = $("drop"), file = $("file");
+  drop.addEventListener("click", ()=>file.click());
+  drop.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); file.click(); }});
+  $("newfile").addEventListener("click", ()=>file.click());
+  ["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over")}));
+  ["dragleave","drop"].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();if(ev==="dragleave"&&e.relatedTarget)return;drop.classList.remove("over")}));
+  document.addEventListener("drop", e=>{ const f=e.dataTransfer.files[0]; if(f) read(f); });
+  file.addEventListener("change", ()=>{ if(file.files[0]) read(file.files[0]); file.value=""; });
+
+  function read(f){
+    const r = new FileReader();
+    r.onload = () => load(r.result, f.name);
+    r.readAsText(f, "utf-8");
+  }
+
+  function load(text, name){
+    text = text.replace(/^\uFEFF/, "");
+    const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
+    if(!lines.length){ alert("That file looks empty."); return; }
+    const delim = lines[0].includes("\t") ? "\t" : ",";
+    const head = lines[0].split(delim).map(h=>h.trim().toLowerCase());
+    const ix = n => head.indexOf(n);
+    const c = {
+      sku:ix("seller-sku"), asin:ix("asin1"), name:ix("item-name"), lid:ix("listing-id"),
+      price:ix("price"), qty:ix("quantity"), status:ix("status"),
+      channel:ix("fulfillment-channel"), group:ix("merchant-shipping-group")
+    };
+    if(c.group<0 || c.price<0){ alert("Couldn't find the 'price' and 'merchant-shipping-group' columns. Is this an All Listings Report?"); return; }
+    data = [];
+    for(let i=1;i<lines.length;i++){
+      const p = lines[i].split(delim);
+      const pr = parseFloat(p[c.price]);
+      const q = parseInt(p[c.qty],10);
+      data.push({
+        sku: p[c.sku]||"", asin: p[c.asin]||"", name: p[c.name]||"", lid: p[c.lid]||"",
+        price: isNaN(pr)?null:pr, qty: isNaN(q)?null:q,
+        status: (p[c.status]||"").trim(), channel: (p[c.channel]||"").trim(),
+        group: (p[c.group]||"").trim() || "(no shipping group)"
+      });
+    }
+    const counts = {};
+    data.forEach(d=>counts[d.group]=(counts[d.group]||0)+1);
+    groups = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+
+    colF.status=null; colF.channel=null;
+
+    $("fileinfo").textContent = `${name} — ${data.length.toLocaleString()} listings across ${groups.length} shipping groups`;
+    drop.classList.add("hidden"); $("app").classList.remove("hidden"); $("newfile").classList.remove("hidden");
+
+    const saved = store.get("lsf-tab");
+    active = groups.includes(saved) ? saved : groups[0];
+    page = 0;
+    render();
+  }
+
+  // ---------- filters ----------
+  QUICK.forEach(v=>{
+    const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent="≤ £"+v; b.dataset.v=v;
+    b.onclick=()=>{ $("maxp").value = ($("maxp").value==String(v)) ? "" : v; page=0; render(); };
+    $("chips").appendChild(b);
+  });
+  ["maxp","minp","q"].forEach(id=>$(id).addEventListener("input",()=>{page=0;render()}));
+  ["noprice","perpage"].forEach(id=>$(id).addEventListener("change",()=>{page=0;render()}));
+  $("reset").onclick=()=>{ $("maxp").value="";$("minp").value="";$("q").value="";colF.status=null;colF.channel=null;$("noprice").checked=false;page=0;render(); };
+  $("prev").onclick=()=>{ page--; render(); window.scrollTo({top:$("tabs").offsetTop-10}); };
+  $("next").onclick=()=>{ page++; render(); window.scrollTo({top:$("tabs").offsetTop-10}); };
+  document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",e=>{
+    if(e.target.closest(".fbtn")) return;
+    const k=th.dataset.k; if(sortK===k) sortDir*=-1; else { sortK=k; sortDir=1; } render();
+  }));
+
+  function passes(d){
+    const max = parseFloat($("maxp").value), min = parseFloat($("minp").value);
+    const priceSet = !isNaN(max) || !isNaN(min);
+    if(d.price===null){ if(priceSet && !$("noprice").checked) return false; }
+    else {
+      if(!isNaN(max) && d.price > max) return false;
+      if(!isNaN(min) && d.price < min) return false;
+    }
+    if(colF.status && !colF.status.has(d.status)) return false;
+    if(colF.channel && !colF.channel.has(d.channel)) return false;
+    const q=$("q").value.trim().toLowerCase();
+    if(q && !(d.sku.toLowerCase().includes(q)||d.asin.toLowerCase().includes(q)||d.name.toLowerCase().includes(q))) return false;
+    return true;
+  }
+
+  // ---------- render ----------
+  function render(){
+    const filtered = data.filter(passes);
+    const byGroup = {};
+    filtered.forEach(d=>byGroup[d.group]=(byGroup[d.group]||0)+1);
+    const totals = {};
+    data.forEach(d=>totals[d.group]=(totals[d.group]||0)+1);
+
+    // tabs
+    const tabs = $("tabs"); tabs.innerHTML="";
+    const mk = (key,label,n,of)=>{
+      const b=document.createElement("button"); b.type="button"; b.className="tab"; b.setAttribute("role","tab");
+      b.setAttribute("aria-selected", key===active);
+      b.innerHTML=`<span class="n ${n?'':'z'}">${n.toLocaleString()} <span class="of">/ ${of.toLocaleString()}</span></span><span class="t" title="${esc(label)}">${esc(label)}</span>`;
+      b.onclick=()=>{ active=key; store.set("lsf-tab",key); page=0; render(); };
+      tabs.appendChild(b);
+    };
+    groups.forEach(g=>mk(g,g,byGroup[g]||0,totals[g]));
+    mk("__ALL__","All shipping groups",filtered.length,data.length);
+    const sel = tabs.querySelector('[aria-selected="true"]'); if(sel) sel.scrollIntoView({block:"nearest",inline:"nearest"});
+
+    // chips state
+    document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on",$("maxp").value===c.dataset.v));
+
+    // rows for the active tab
+    let rows = active==="__ALL__" ? filtered : filtered.filter(d=>d.group===active);
+    $("groupcol").classList.toggle("hidden", active!=="__ALL__");
+
+    rows = rows.slice().sort((a,b)=>{
+      let x=a[sortK], y=b[sortK];
+      if(x===null||x==="") return 1; if(y===null||y==="") return -1;
+      if(typeof x==="number") return (x-y)*sortDir;
+      return String(x).localeCompare(String(y),undefined,{numeric:true})*sortDir;
+    });
+    document.querySelectorAll("th[data-k]").forEach(th=>{
+      th.querySelector(".arr").textContent = th.dataset.k===sortK ? (sortDir>0?" ▲":" ▼") : "";
+    });
+    document.querySelectorAll(".fbtn").forEach(b=>b.classList.toggle("on", !!colF[b.dataset.f]));
+
+    // summary
+    const priced = rows.filter(r=>r.price!==null);
+    const act = rows.filter(r=>r.status==="Active").length;
+    const avg = priced.length ? priced.reduce((s,r)=>s+r.price,0)/priced.length : 0;
+    const lo = priced.length ? Math.min(...priced.map(r=>r.price)) : 0;
+    const hi = priced.length ? Math.max(...priced.map(r=>r.price)) : 0;
+    const max = $("maxp").value;
+    const label = active==="__ALL__" ? "All shipping groups" : active;
+    $("summary").innerHTML = `
+      <span class="lead">${esc(label)}${max!==""?` · price ≤ £${esc(max)}`:""}</span>
+      <span><b>${rows.length.toLocaleString()}</b> listings</span>
+      <span><b>${act.toLocaleString()}</b> active</span>
+      <span>Price range <b>${priced.length?`£${lo.toFixed(2)} – £${hi.toFixed(2)}`:"—"}</b></span>
+      <span>Average <b>${priced.length?"£"+avg.toFixed(2):"—"}</b></span>
+      <span id="tickcount"></span>`;
+    curRows = rows;
+
+    // pagination
+    const per = parseInt($("perpage").value,10);
+    const pages = Math.max(1, Math.ceil(rows.length/per));
+    if(page>=pages) page=pages-1; if(page<0) page=0;
+    const slice = rows.slice(page*per, page*per+per);
+    $("pageinfo").textContent = rows.length ? `Showing ${(page*per+1).toLocaleString()}–${(page*per+slice.length).toLocaleString()} of ${rows.length.toLocaleString()}` : "";
+    $("prev").disabled = page===0; $("next").disabled = page>=pages-1;
+
+    $("empty").classList.toggle("hidden", rows.length>0);
+    const showG = active==="__ALL__";
+    $("rows").innerHTML = slice.map(r=>`<tr class="${ticks.has(r.sku)?"done":""}">
+      <td>${r.asin?`<a href="https://www.amazon.co.uk/dp/${encodeURIComponent(r.asin)}" target="_blank" rel="noopener">${esc(r.asin)}</a>`:""}</td>
+      <td class="sku">${esc(r.sku)}</td>
+      <td class="title">${esc(r.name)}</td>
+      <td class="num price">${r.price===null?'<span class="ch">—</span>':"£"+r.price.toFixed(2)}</td>
+      <td class="num ${r.qty===0?'qty0':''}">${r.qty===null?"—":r.qty}</td>
+      <td><span class="st ${esc(r.status)}">${esc(r.status)}</span></td>
+      <td class="ch">${esc(r.channel)}</td>
+      <td class="tk"><input type="checkbox" class="gchk" data-sku="${esc(r.sku)}" ${ticks.has(r.sku)?"checked":""} aria-label="Tick ${esc(r.sku)}"></td>
+      ${showG?`<td class="ch">${esc(r.group)}</td>`:""}
+    </tr>`).join("");
+    syncTickAll(); updTickCount();
+  }
+
+  $("export").onclick=()=>{
+    let rows = data.filter(passes); if(active!=="__ALL__") rows=rows.filter(d=>d.group===active);
+    const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+    const csv="\uFEFF"+["asin1,seller-sku,item-name,listing-id,price,quantity,status,fulfillment-channel,ticked,merchant-shipping-group"]
+      .concat(rows.map(r=>[r.asin,r.sku,r.name,r.lid,r.price??"",r.qty??"",r.status,r.channel,ticks.has(r.sku)?"Yes":"",r.group].map(q).join(","))).join("\r\n");
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+    const mx=$("maxp").value;
+    a.download=((active==="__ALL__"?"All":active)+(mx?"_under_"+mx:"")).replace(/[^\w.-]+/g,"_")+".csv";
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  // ---------- green ticks (saved in this browser) ----------
+  let ticks = new Set();
+  try{ ticks = new Set(JSON.parse(store.get("lsf-ticks")||"[]")); }catch(e){}
+  const saveTicks=()=>store.set("lsf-ticks",JSON.stringify([...ticks]));
+  $("rows").addEventListener("change",e=>{
+    const c=e.target.closest(".gchk"); if(!c) return;
+    c.checked?ticks.add(c.dataset.sku):ticks.delete(c.dataset.sku);
+    c.closest("tr").classList.toggle("done",c.checked);
+    saveTicks(); syncTickAll(); updTickCount();
+  });
+  $("tickall").addEventListener("change",()=>{
+    $("rows").querySelectorAll(".gchk").forEach(c=>{
+      c.checked=$("tickall").checked;
+      c.checked?ticks.add(c.dataset.sku):ticks.delete(c.dataset.sku);
+      c.closest("tr").classList.toggle("done",c.checked);
+    });
+    saveTicks(); updTickCount();
+  });
+  function syncTickAll(){
+    const cs=[...$("rows").querySelectorAll(".gchk")], n=cs.filter(c=>c.checked).length;
+    $("tickall").checked = cs.length>0 && n===cs.length; $("tickall").indeterminate = n>0 && n<cs.length;
+  }
+  function updTickCount(){ const el=$("tickcount"); if(el) el.innerHTML=`<b style="color:#1E9E55">${curRows.filter(r=>ticks.has(r.sku)).length.toLocaleString()}</b> ticked`; }
+  let curRows=[];
+
+  // ---------- Excel-style column filter ----------
+  const colF = {status:null, channel:null};
+  let fKey = null;
+  const pop = $("fpop");
+  document.querySelectorAll(".fbtn").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation();
+    if(fKey===b.dataset.f && !pop.classList.contains("hidden")){ pop.classList.add("hidden"); return; }
+    fKey=b.dataset.f;
+    const counts={}; data.forEach(d=>{ const v=d[fKey]||""; counts[v]=(counts[v]||0)+1; });
+    const vals=Object.keys(counts).sort();
+    const cur=colF[fKey];
+    $("flist").innerHTML = vals.map(v=>`<label><input type="checkbox" value="${esc(v)}" ${!cur||cur.has(v)?"checked":""}> ${v?esc(v):"(blank)"}<span class="cnt">${counts[v].toLocaleString()}</span></label>`).join("");
+    syncAll();
+    $("flist").querySelectorAll("input").forEach(i=>i.onchange=syncAll);
+    const r=b.getBoundingClientRect();
+    pop.classList.remove("hidden");
+    const left=Math.min(r.left+window.scrollX, window.scrollX+document.documentElement.clientWidth-pop.offsetWidth-8);
+    pop.style.left=Math.max(8,left)+"px"; pop.style.top=(r.bottom+window.scrollY+6)+"px";
+  }));
+  function syncAll(){
+    const ins=[...$("flist").querySelectorAll("input")];
+    const n=ins.filter(i=>i.checked).length;
+    $("fall").checked = n===ins.length; $("fall").indeterminate = n>0 && n<ins.length;
+  }
+  $("fall").onchange=()=>{ $("flist").querySelectorAll("input").forEach(i=>i.checked=$("fall").checked); syncAll(); };
+  $("fok").onclick=()=>{
+    const ins=[...$("flist").querySelectorAll("input")];
+    const on=ins.filter(i=>i.checked).map(i=>i.value);
+    colF[fKey] = on.length===ins.length ? null : new Set(on);
+    pop.classList.add("hidden"); page=0; render();
+  };
+  $("fclear").onclick=()=>{ colF[fKey]=null; pop.classList.add("hidden"); page=0; render(); };
+  document.addEventListener("click",e=>{ if(!pop.contains(e.target) && !e.target.closest(".fbtn")) pop.classList.add("hidden"); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape") pop.classList.add("hidden"); });
+
+  function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+})();
+</script>
+</body>
+</html>
